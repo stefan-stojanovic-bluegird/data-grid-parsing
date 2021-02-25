@@ -18,9 +18,9 @@ def get_emails_and_pwds(lines, filename):
     emails = []
     passwords = []
     for idx,line in enumerate(lines):
-        if idx % 10000 == 0 and idx > 0:
+        if idx % 15000 == 0 and idx > 0:
             logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
-            write_to_csv(emails,passwords)
+            write_to_txt(emails,passwords)
             emails = []
             passwords =[]
             logging.info("Emptied out")
@@ -51,6 +51,7 @@ def get_emails_and_pwds(lines, filename):
 
 
 def write_to_csv(emails, passwords):
+
     emails = list(set(emails))
     passwords = list(set(passwords))
 
@@ -65,6 +66,7 @@ def write_to_csv(emails, passwords):
 
 def write_to_txt(emails,passwords):
     emails = list(set(emails))
+    passwords = list(set(passwords))
     with open("results/emails.txt","a") as f:
         f.write("\n".join(emails))
 
