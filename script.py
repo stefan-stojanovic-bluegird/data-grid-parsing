@@ -15,15 +15,15 @@ def detect_encoding(filename):
 
 
 def get_emails_and_pwds(lines, filename):
+    logging.info("Number of lines {}".format(len(lines)))
     emails = []
     passwords = []
     for idx,line in enumerate(lines):
-        if idx % 15000 == 0 and idx > 0:
-            logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
-            write_to_txt(emails,passwords)
+        if idx % 35000 == 0 and idx > 0:
+            write_to_txt(emails,passwords,filename)
+            #logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
             emails = []
             passwords =[]
-            logging.info("Emptied out")
         try:
             data = re.findall(PATTERN,line)
             if data:
@@ -34,44 +34,42 @@ def get_emails_and_pwds(lines, filename):
             else:
                 data = re.split('[:;*]',line)
                 if len(data) > 2:
-                    line += " ---> Couldn't parse email and password"
+                    line += " ---> INVALID LINE"
                 elif len(data) == 2:
                     password = data[1]
                     passwords.append(password)
-                    line += " ---> Couldn't parse email"
+                    line += " ---> INVALID EMAIL"
                 
                 add_unprocessed_line(line)
 
 
         except Exception as e:
             logging.error("Error", exc_info=True)
-        
-    write_to_txt(emails,passwords)
+    logging.info("Inserting last batch")
+    logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
+    write_to_txt(emails,passwords,filename)
+    logging.info("Done")
 
 
 
-def write_to_csv(emails, passwords):
+def write_to_csv(emails, passwords,filename):
 
-    emails = list(set(emails))
-    passwords = list(set(passwords))
-
-    with open(f"results/emails.csv", "a") as f:
+    with open(f"results/EMAILS-{filename.strip().reaplce(' ','-')}.csv", "a") as f:
         writer = csv.writer(f)
         writer.writerows(emails)
 
-    with open(f"results/passwords.csv", "a") as f:
+    with open(f"results/PASSWORDS-{filename.strip().reaplce(' ','-')}.csv", "a") as f:
         writer = csv.writer(f)
         writer.writerows(passwords)
 
 
-def write_to_txt(emails,passwords):
-    emails = list(set(emails))
-    passwords = list(set(passwords))
-    with open("results/emails.txt","a") as f:
-        f.write("\n".join(emails))
+def write_to_txt(emails,passwords,filename):
+    with open(f"results/emails-{filename.strip().replace(' ','-')}.txt", "a") as f:
+        f.write("\n".join(emails)+ "\n")
 
-    with open("results/passwords.txt","a") as f:
-        f.write("\n".join(passwords))
+    with open(f"results/passwords-{filename.strip().replace(' ' ,'-')}.txt", "a") as f:
+        f.write("\n".join(passwords)+ "\n")
+
 
 def get_lines_from_file(filename):
     encoding = ["utf-8","latin_1"]
@@ -109,13 +107,15 @@ if __name__ == "__main__":
                     logging.info("Processing {}".format(inner_filename))
                     lines = get_lines_from_file(inner_filename)
                     if lines:
-                        get_emails_and_pwds(lines,inner_filename)
+                        get_emails_and_pwds(lines,file)
                         add_processed_file(inner_filename)
                     else:
                         logging.info("Didn't process {}".format(inner_filename))
                         add_unprocessed_file(inner_filename)
+                        continue
                 except Exception as e:
                     logging.error("Error at {}".format(inner_filename), exc_info=True)
                     add_unprocessed_file(inner_filename)
+                    continue
        
     logging.info(f"Done parsing collection!")
