@@ -9,33 +9,42 @@ import time
 from helpers.errors import *
 from helpers.pattern import PATTERN
 
-def detect_encoding(filename):
-    result = subprocess.run(["file","-i",filename], capture_output=True, text=True)
-    return result.stdout.split("charset")[-1].replace("\n","")[1:]
-
-
+RESULTS_PATH = "/home/ubuntu/mongo-import/results"
 def get_emails_and_pwds(lines, filename, dir_name):
-    if not os.path.exists(f"/home/ubuntu/mongo-import/results/{dir_name}"):
-        os.mkdir(os.path.join("/home/ubuntu/mongo-import/results",dir_name))
-    path = f"/home/ubuntu/mongo-import/results/{dir_name}/DATA-GRID-{filename}"
+    root = os.path.join(RESULTS_PATH, dir_name)
+    
+    email_dir = os.path.join(root, "emails")
+    password_dir = os.path.join(root, "passwords")
+    unprocessed_dir = os.path.join(root, "unprocessed")
+    
+    email_filename = os.path.join(email_dir, f"EMAILS-{filename}")
+    password_filename = os.path.join(password_dir, f"PASSWORDS-{filename}")
+    unprocessed_filename = os.path.join(unprocessed_dir, f"UNPROCESSED-{filename}")
+    
+    if not os.path.exists(root):
+        os.mkdir(root)
+        os.mkdir(email_dir)
+        os.mkdir(password_dir)
+        os.mkdir(unprocessed_dir)
+
     logging.info("Number of lines {}".format(len(lines)))
     emails = []
     passwords = []
     unprocessed = []
     for idx,line in enumerate(lines):
-        if line.startswith("\n"):
-            line = line[1:]
+        #if line.startswith("\n"):
+        #    line = line[1:]
         if line.endswith("\n"):
             line = line[:-1]
         if line == "":
             continue
         if idx % 35000 == 0 and idx > 0:
-            write_to_txt(emails,passwords,path)
+            write_to_txt(emails,passwords,email_filename, password_filename)
             #logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
             emails = []
             passwords =[]
             if unprocessed:
-                add_unprocessed_lines(unprocessed,f"/home/ubuntu/mongo-import/results/{dir_name}/unprocessed_lines.txt")
+                add_unprocessed_lines(unprocessed,unprocessed_filename)
             unprocessed = []
         try:
             data = re.findall(PATTERN,line)
@@ -60,28 +69,18 @@ def get_emails_and_pwds(lines, filename, dir_name):
             logging.error("Error", exc_info=True)
     logging.info("Inserting last batch")
     logging.info("Emails {} : Passwords {}".format(len(emails),len(passwords)))
-    write_to_txt(emails,passwords,path)
+    if unprocessed:
+        add_unprocessed_lines(unprocessed,unprocessed_filename)
+    write_to_txt(emails,passwords,email_filename, password_filename)
     logging.info("Done")
 
-
-
-def write_to_csv(emails, passwords,filename):
-
-    with open(f"results/EMAILS-{filename.strip().reaplce(' ','-')}.csv", "a") as f:
-        writer = csv.writer(f)
-        writer.writerows(emails)
-
-    with open(f"results/PASSWORDS-{filename.strip().reaplce(' ','-')}.csv", "a") as f:
-        writer = csv.writer(f)
-        writer.writerows(passwords)
-
-
-def write_to_txt(emails,passwords,path):
-    with open(path.replace("DATA-GRID","EMAILS") , "a") as f:
-        f.write("\n".join(emails)+ "\n")
-
-    with open(path.replace("DATA-GRID","PASSWORDS"), "a") as f:
-        f.write("\n".join(passwords)+ "\n")
+def write_to_txt(emails,passwords,email_filename, pwd_filename):
+    if emails:
+        with open(email_filename, "a") as f:
+            f.write("\n".join(emails)+ "\n")
+    if passwords:
+        with open(pwd_filename, "a") as f:
+            f.write("\n".join(passwords)+ "\n")
 
 
 def get_lines_from_file(filename,inner_file,file_):
