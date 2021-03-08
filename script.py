@@ -54,7 +54,7 @@ def get_emails_and_pwds(lines, filename, dir_name):
                 emails.append(email)
                 passwords.append(password)
             else:
-                data = re.split('[:;*]',line)
+                data = re.split('[:;* ]',line)
                 if len(data) > 2:
                     line += " ---> INVALID LINE"
                 elif len(data) == 2:
